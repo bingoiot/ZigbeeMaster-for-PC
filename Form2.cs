@@ -30,7 +30,7 @@ namespace MySerialPorts
             pictureBox1.Location = new Point(0,0);
             pictureBox1.Size = new Size(SW,SH);
             myAssocMap = new AssocMap(pictureBox1);
-            ZigbeeApi.myAssocList.ClearList();
+            AssocList.ClearList();
             ZigbeeApi.Instance.ReqAssocList();
         }
         private void Form2_Deactivate(object sender, EventArgs e)
@@ -45,20 +45,26 @@ namespace MySerialPorts
         private void timer1_Tick(object sender, EventArgs e)
         {
             this.BeginInvoke(myDrawMap);
+           // AssocList.ClearList();
         }
         private void DrawMap()
         {
-            ZigbeeApi.myAssocList.LockList();
-            AssocList.Tree_t tree = ZigbeeApi.myAssocList.GetAssocList();
+            AssocList.LockList();
+            List<AssocList.DeviceAssocInfo_t> tree = AssocList.GetAssocList();
             if (tree != null)
                 myAssocMap.DrawDeviceMap((byte)ZigbeeApi.Device.GetChannel(), (UInt16)ZigbeeApi.Device.GetPanID(), tree);
-            ZigbeeApi.myAssocList.ReleaseList();
+            AssocList.ReleaseList();
         }
-
+        int i;
         private void timer2_Tick(object sender, EventArgs e)
         {
-           // ZigbeeApi.myAssocList.ClearList();
-          //  ZigbeeApi.Instance.ReqAssocList();
+            i++;
+        }
+
+        private void timer2_Tick_1(object sender, EventArgs e)
+        {
+            AssocList.ClearList();
+            ZigbeeApi.Instance.ReqAssocList();
         }
     }
 }

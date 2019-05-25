@@ -8,20 +8,32 @@ namespace MySerialPorts
 {
     class AssocList
     {
-        public class Tree_t
+        public class NeighborInfo_t
         {
             public UInt16 addr;
-            public byte lqi;
-            public byte devType;
-            public Boolean finished;
-            public List<Tree_t> child;
+            public byte   rxlqi;
+            public byte   devType;
         }
-        private static Tree_t   myTree = null;
-        private static Mutex    myMutex = new Mutex();
+        public class DeviceAssocInfo_t
+        {
+            public UInt16   addr;
+            public int      startIndex;
+            public Boolean  finished;
+            
+            public List<NeighborInfo_t> Neighbor;
+
+            public int x;
+            public int y;
+            public int text_x;
+            public int text_y;
+        }
+        private static List<DeviceAssocInfo_t> myDeviceList = new List<DeviceAssocInfo_t>();
+        private static Mutex                myMutex = new Mutex();
 
         public void MessageInput(byte[] data, int len)
         {
             UInt16 srcAddr;
+            int startID = 0;
             int index = 4;//start of data
             srcAddr = ZigbeeCommon.BtoU16(data, index); index += 2;
             if (data[index++] == 0x00)//if succees
@@ -37,159 +49,147 @@ namespace MySerialPorts
                     byte devType = (byte)((data[index] & 0x03) + 1);
                     index += 3;
                     byte lqi = data[index++];
-                    if ((devType == 0x02)&&(CheckFinished(DevAddr)==false))
+                    if ((devType == 0x02) && (CheckExist(DevAddr) == false))
                         ZigbeeApi.Instance.ReqAssoc(DevAddr, 0);
-                    if (CheckExist(DevAddr) == false)
-                    { 
-                        Tree_t node = new Tree_t();
-                        node.addr = DevAddr;
-                        node.devType = devType;
-                        node.child = null;
-                        node.lqi = lqi;
-                        InsertTree(srcAddr, node);
-                    }
-                    if ((DevAddr != 0x0000) && (ZigbeeApi.Device.CheckExist(DevAddr) == false))
-                    {
-                        ZigbeeApi.Device.AddDevice(DevAddr, null);
-                    }
+                    startID = AddDeviceAssoc(srcAddr, devType, DevAddr, lqi);
                 }
-                if ((startDevID + curNum) < totalNum)
-                    ZigbeeApi.Instance.ReqAssoc(srcAddr, (byte)(startDevID + curNum));
+                if (startID < totalNum)
+                    ZigbeeApi.Instance.ReqAssoc(srcAddr, (byte)startID);
                 else
                     SetFinishedFlag(srcAddr,true);
             }
         }
-        public void LockList()
+        public static byte GetDeviceType(UInt16 Addr)
         {
-            myMutex.WaitOne();
-        }
-        public Tree_t GetAssocList()
-        {
-            return myTree;
-        }
-        public void ReleaseList()
-        {
-            myMutex.ReleaseMutex();
-        }
-        public void ClearList()
-        {
-            myTree = null;
-        }
-        private void InsertTree(UInt16 addr, Tree_t node)
-        {
-            myMutex.WaitOne();
-            if (myTree == null)
+            byte devType = 0xFF;
+            LockList();
+            foreach (DeviceAssocInfo_t dev in myDeviceList)
             {
-                Tree_t n = new Tree_t();
-                n.addr = 0x0000;
-                n.devType = ZigbeeCommon.DevTpye_Coord;
-                n.child = new List<Tree_t>();
-                myTree = n;
-                myTree.child.Add(node);
-            }
-            else
-            {
-                Tree_t father = GetNode(addr, myTree);
-                if (father != null)
+                foreach (NeighborInfo_t info in dev.Neighbor)
                 {
-                    if (father.child == null)
-                        father.child = new List<Tree_t>();
-                    father.child.Add(node);
+                    if (info.addr == Addr)
+                    {
+                        devType = info.devType;
+                        break;
+                    }
                 }
             }
-            myMutex.ReleaseMutex();
+            ReleaseList();
+            return devType;
         }
-        private void Remove(UInt16 addr)
+        public static void LockList()
         {
             myMutex.WaitOne();
-            if (myTree != null)
+        }
+        public static void ReleaseList()
+        {
+            myMutex.ReleaseMutex();
+        }
+        public static void ClearList()
+        {
+           myDeviceList = new List<DeviceAssocInfo_t>();
+        }
+        public static List<DeviceAssocInfo_t> GetAssocList()
+        {
+            return myDeviceList;
+        }
+        public static void SetTextPoint(UInt16 Addr, int x, int y)
+        {
+            foreach (DeviceAssocInfo_t dev in myDeviceList)
             {
-                Tree_t father = GetFather(addr, myTree);
-                if (father != null)
+                if (dev.addr == Addr)
                 {
-                    if (father.child != null)
+                    dev.text_x = x;
+                    dev.text_y = y;
+                    break;
+                }
+            }
+        }
+        public static DeviceAssocInfo_t GetDeviceAssocInfo(UInt16 Addr)
+        {
+            foreach (DeviceAssocInfo_t dev in myDeviceList)
+            {
+                if (dev.addr == Addr)
+                {
+                    return dev;
+                }
+            }
+            return null;
+        }
+        private static bool CheckExist(UInt16 Addr)
+        {
+            bool ret = false;
+            LockList();
+            foreach (DeviceAssocInfo_t dev in myDeviceList)
+            {
+                if (dev.addr == Addr)
+                {
+                    ret = true;
+                    break;
+                }
+            }
+            ReleaseList();
+            return ret;
+        }
+        private static int AddDeviceAssoc(UInt16 Addr, byte DevType, UInt16 NeighborAddr, byte NeighborLqi)
+        {
+            bool has = false;
+            int index = 0;
+            if (CheckExist(Addr) == false)
+            {
+                LockList();
+                DeviceAssocInfo_t neighbor = new DeviceAssocInfo_t();
+                neighbor.addr = Addr;
+                neighbor.finished = false;
+                neighbor.startIndex = 0;
+                neighbor.Neighbor = new List<NeighborInfo_t>();
+                neighbor.x = 0;
+                neighbor.y = 0;
+                myDeviceList.Add(neighbor);
+                ReleaseList();
+            }
+            LockList();
+            foreach (DeviceAssocInfo_t dev in myDeviceList)
+            {
+                if (dev.addr == Addr)
+                {
+                    foreach (NeighborInfo_t info in dev.Neighbor)
                     {
-                        for (int i = 0; i < father.child.Count; i++)
+                        if (info.addr == NeighborAddr)
                         {
-                            if (father.child[i].addr == addr)
-                                father.child.RemoveAt(i);
-                        } 
+                            has = true;
+                            info.rxlqi = NeighborLqi;//update lqi;
+                            break;
+                        }
                     }
-                }
-            }
-            myMutex.ReleaseMutex();
-        }
-        private Boolean CheckExist(UInt16 addr)
-        {
-            Boolean flag = false;
-            myMutex.WaitOne();
-            if (myTree != null)
-            {
-                Tree_t tree = GetNode(addr, myTree);
-                if (tree != null)
-                    flag = true;
-            }
-            myMutex.ReleaseMutex();
-            return flag;
-        }
-        private Boolean CheckFinished(UInt16 addr)
-        {
-            Boolean flag = false;
-            myMutex.WaitOne();
-            if (myTree != null)
-            {
-                Tree_t tree = GetNode(addr, myTree);
-                if ((tree != null)&&(tree.finished==true))
-                    flag = true;
-            }
-            myMutex.ReleaseMutex();
-            return flag;
-        }
-        private void SetFinishedFlag(UInt16 addr, Boolean flag)
-        {
-            myMutex.WaitOne();
-            if (myTree != null)
-            {
-                Tree_t tree = GetNode(addr, myTree);
-                if (tree != null)
-                    tree.finished = flag;
-            }
-            myMutex.ReleaseMutex();
-        }
-        private Tree_t GetNode(UInt16 addr, Tree_t tree)
-        {
-            if (tree.addr == addr)
-                return tree;
-            else if(tree.child!=null)
-            {
-                for (int i = 0; i < tree.child.Count; i++)
-                {
-                    Tree_t node = GetNode(addr,tree.child[i]);
-                    if (node != null)
-                        return node;
-                }      
-            }
-            return null;
-        }
-        private Tree_t GetFather(UInt16 addr, Tree_t tree)
-        {
-            if (tree.child != null)
-            {
-                for (int i = 0; i < tree.child.Count; i++)
-                {
-                    if (tree.child[i].addr == addr)
-                        return tree;
-                    else
+                    if (has == false)
                     {
-                        Tree_t node = GetFather(addr, tree.child[i]);
-                        if (node != null)
-                            return tree;
+                        NeighborInfo_t n = new NeighborInfo_t();
+                        n.addr = NeighborAddr;
+                        n.rxlqi = NeighborLqi;
+                        n.devType = DevType;
+                        dev.Neighbor.Add(n);
                     }
+                    dev.startIndex++;
+                    index = dev.startIndex;
+                    break;
                 }
             }
-            return null;
+            ReleaseList();
+            return index;
         }
-
-
+        private static void SetFinishedFlag(UInt16 Addr, bool IsFinished)
+        {
+            LockList();
+            foreach (DeviceAssocInfo_t dev in myDeviceList)
+            {
+                if (dev.addr == Addr)
+                {
+                    dev.finished = IsFinished;
+                    break;
+                }
+            }
+            ReleaseList();
+        }
     }
 }
