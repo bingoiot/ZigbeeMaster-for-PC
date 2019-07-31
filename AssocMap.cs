@@ -11,11 +11,14 @@ namespace MySerialPorts
         static System.Windows.Forms.PictureBox myPictureBox;
         static Image    myImg;
         static Graphics myGraphics;
-        private const int DevWith = 64;
-        private const int DevHeight = 64;
-        private const int DevNumPerLine = 6;
+        private const int DevWith = 32;
+        private const int DevHeight = 32;
+        private const int DevNumPerLine = 15;
         private const int DevHeightPerLine = 4;
         private int DevStartID = 0;
+
+        private int ShowLqiString_x = 0;
+        private int ShowLqiString_y = 0;
         public AssocMap(System.Windows.Forms.PictureBox picbox)
         {
             myPictureBox = picbox;
@@ -49,6 +52,7 @@ namespace MySerialPorts
                 list[0].y = cdy;
                 list[0].text_x = cdx;
                 list[0].text_y = cdy;
+                ShowLqiString_y = 0;
                 DrawCoord(ch, panID, cdx, cdy);
                 DrawLayer(list, cdx, cdy, myImg.Width, myImg.Height);
                 myPictureBox.Image = myImg;
@@ -100,6 +104,16 @@ namespace MySerialPorts
                                 dev.text_y = sy;
                                 dev.text_x = sx;
                                 break;
+                            default:
+                                // DrawLine(dev.lqi, x, y, sx, sy);
+                                loss = ZigbeeApi.Device.GetLossPercent(dev.addr);
+                                snd = ZigbeeApi.Device.GetSendCount(dev.addr);
+                                DrawOphanDevice(dev.addr, 0xFF, loss, snd, sx, sy);
+                                dev.x = sx;
+                                dev.y = sy;
+                                dev.text_y = sy;
+                                dev.text_x = sx;
+                                break;
                         }
                     }
                 }
@@ -125,6 +139,9 @@ namespace MySerialPorts
                         DrawLine(n.rxlqi, sx, sy, ex, ey);
                         DrawStringLqi(dev.addr,n.addr, n.rxlqi, dev.text_x, dev.text_y, ex, ey);
                         AssocList.SetTextPoint(n.addr, d.text_x, d.text_y+25);
+
+                        DrawStringLqi(dev.addr, n.addr, n.rxlqi, ShowLqiString_x, ShowLqiString_y, 0, 0);
+                        ShowLqiString_y += 32;
                     }
                 }
             }
@@ -175,6 +192,22 @@ namespace MySerialPorts
             str += "loss:" + loss.ToString() + "%" + "\r\n";
             myGraphics.DrawString(str, f, Brushes.Green, pf);
         }
+        private void DrawOphanDevice(UInt16 addr, byte lqi, float loss, int snd, int x, int y)
+        {
+            Brush bush = new SolidBrush(Color.Red);//填充的颜色
+            myGraphics.FillEllipse(bush, x, y, DevWith, DevHeight);
+
+            Font f = new Font("Arial", 12);
+            PointF pf = new PointF(x + (DevWith / 4), y + (DevHeight / 4));
+            myGraphics.DrawString("O", f, Brushes.White, pf);
+
+            f = new Font("Arial", 8);
+            pf = new PointF(x + DevWith, y);
+            String str = "dev:" + addr.ToString("X4") + "\r\n" + "lqi:" + lqi.ToString() + "\r\n";
+            str += "snd:" + snd.ToString() + "\r\n";
+            str += "loss:" + loss.ToString() + "%" + "\r\n";
+            myGraphics.DrawString(str, f, Brushes.Green, pf);
+        }
         private void DrawStringLqi(UInt16 srcAddr, UInt16 tAddr, byte lqi, int x, int y, int ex, int ey)
         {
             x += (DevWith / 2);
@@ -186,7 +219,7 @@ namespace MySerialPorts
             y = (y + ey) / 2;
             Font f = new Font("Arial", 8);
             PointF pf = new PointF(x, y);
-            String str = lqi.ToString("X2")+"@"+srcAddr.ToString("X4")+" <-- "+ tAddr.ToString("X4") ;
+            String str = lqi.ToString("X2")+"@"+srcAddr.ToString("X4")+" < "+ tAddr.ToString("X4") ;
             myGraphics.DrawString(str, f, Brushes.Red, pf);
         }
         private void DrawLine(byte lqi,int x, int y, int ex, int ey)

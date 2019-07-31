@@ -71,7 +71,7 @@ namespace MySerialPorts
             snd.cmd0 = cmd0;
             snd.cmd1 = cmd1;
             snd.seq = seq;
-            snd.runtime = 0;
+            snd.runtime = ZigbeeApi.myZtool.GetSendTimeout();
             snd.stry = stry;
             snd.data = new byte[data.Length];
             Array.Copy(data, snd.data, data.Length);

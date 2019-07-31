@@ -199,6 +199,7 @@ namespace MySerialPorts
                     sp.Open();
                     连接.Image = Properties.Resources.Close;
                     ZigbeeApi.Instance.ReqReadNetWorkInfo();
+                    //ZigbeeApi.Instance.ReqAssocList();
                 }
                 else
                 {

@@ -33,6 +33,14 @@ namespace MySerialPorts
         static byte[]       ExAddr = new byte[8];
         static byte[]       NwkKey = new byte[16];
         static int          NVOperationType = 0;
+        public void ReqLqiWithcAssoc()
+        {
+            foreach (Device_t dev in DeviceList)
+            {
+                if(AssocList.GetFinishedFlag(dev.addr)==false)
+                    ZigbeeApi.Instance.ReqAssoc(dev.addr, (byte)0x00);
+            }
+        }
         public void InputMessage(byte[] data, int len)
         {
             if (data[2] == 0x61)//read or write NV  items
@@ -187,7 +195,7 @@ namespace MySerialPorts
         }
         public void AddDevice(UInt16 addr, byte[] exAddr)
         {
-            if (CheckExist(addr) == false)
+            if ((CheckExist(addr) == false)&&(addr>0))
             {
                 Device_t dev = new Device_t();
                 dev.addr = addr;

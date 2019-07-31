@@ -45,14 +45,19 @@ namespace MySerialPorts
                 {
                     index += 16;
                     UInt16 DevAddr = ZigbeeCommon.BtoU16(data, index);
+                    if (ZigbeeApi.Device.CheckExist(DevAddr) == false)
+                    {
+                        ZigbeeApi.Device.AddDevice(DevAddr, null);
+                    }
                     index += 2;
                     byte devType = (byte)((data[index] & 0x03) + 1);
                     index += 3;
                     byte lqi = data[index++];
-                    if ((devType == 0x02) && (CheckExist(DevAddr) == false))
-                        ZigbeeApi.Instance.ReqAssoc(DevAddr, 0);
+                    //if ((devType == 0x02))
+                   //     ZigbeeApi.Instance.ReqAssoc(DevAddr, 0);
                     startID = AddDeviceAssoc(srcAddr, devType, DevAddr, lqi);
                 }
+                startID = startDevID + curNum;
                 if (startID < totalNum)
                     ZigbeeApi.Instance.ReqAssoc(srcAddr, (byte)startID);
                 else
@@ -176,7 +181,7 @@ namespace MySerialPorts
                 }
             }
             ReleaseList();
-            return index;
+            return index+1;
         }
         private static void SetFinishedFlag(UInt16 Addr, bool IsFinished)
         {
@@ -190,6 +195,19 @@ namespace MySerialPorts
                 }
             }
             ReleaseList();
+        }
+        public static bool GetFinishedFlag(UInt16 Addr)
+        {
+            LockList();
+            foreach (DeviceAssocInfo_t dev in myDeviceList)
+            {
+                if (dev.addr == Addr)
+                {
+                    return dev.finished;
+                }
+            }
+            ReleaseList();
+            return false;
         }
     }
 }
