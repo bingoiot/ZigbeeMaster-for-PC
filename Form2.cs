@@ -47,8 +47,10 @@ namespace MySerialPorts
             //this.BeginInvoke(myDrawMap);
             DrawMap();
             runtime++;
-            timer1.Interval = 5000;
-            timer2.Interval = (ZigbeeApi.Device.GetDeviceCount()+1) * 5000;
+            int num = ZigbeeApi.Device.GetDeviceCount();
+            timer2.Interval = (num * num + 1) * 2000;
+            if(num<5)
+                timer1.Interval = 2000 * num;
            // AssocList.ClearList();
         }
         private int last_count = 0;
