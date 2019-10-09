@@ -47,6 +47,8 @@ namespace MySerialPorts
             //this.BeginInvoke(myDrawMap);
             DrawMap();
             runtime++;
+            timer1.Interval = 5000;
+            timer2.Interval = (ZigbeeApi.Device.GetDeviceCount()+1) * 5000;
            // AssocList.ClearList();
         }
         private int last_count = 0;
@@ -55,7 +57,8 @@ namespace MySerialPorts
         {
             //AssocList.LockList();
             List<AssocList.DeviceAssocInfo_t> tree = AssocList.GetAssocList();
-            if (((tree != null) && (tree.Count != last_count)) || ((runtime % 10000 == 0) && (tree.Count>0)))
+            //if (((tree != null) && (tree.Count != last_count)) || ((runtime % 2 == 0) && (tree.Count>0)))
+            if((tree != null) && (tree.Count >0)) 
             {
                 last_count = tree.Count;
                 myAssocMap.ClearImg();
@@ -71,7 +74,7 @@ namespace MySerialPorts
 
         private void timer2_Tick_1(object sender, EventArgs e)
         {
-            //AssocList.ClearList();
+            AssocList.ClearList();
             ZigbeeApi.Instance.ReqAssoc(0x0000, (byte)0x00);
             ZigbeeApi.Device.ReqLqiWithcAssoc();
         }
