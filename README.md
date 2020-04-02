@@ -1,7 +1,7 @@
-# ZigbeeMaster.exe ÓÃC#±àĞ´µÄÓÃÓÚ²âÊÔZigbeeĞ­µ÷Æ÷ÓëÉè±¸µÄPC¶Ë³ÌĞò 
+# ZigbeeMaster.exe ç”¨C#ç¼–å†™çš„ç”¨äºæµ‹è¯•Zigbeeåè°ƒå™¨ä¸è®¾å¤‡çš„PCç«¯ç¨‹åº 
 
-![image](https://github.com/bingoiot/ZigbeeMaster-for-PC/blob/master/img/img1.png)
+![image](https://github.com/bingoiot/ZigbeeMaster-for-PC/img/img1.png)
 
-![image](https://github.com/bingoiot/ZigbeeMaster-for-PC/blob/master/img/img2.png)
+![image](https://github.com/bingoiot/ZigbeeMaster-for-PC/img/img2.png)
 
-![image](https://github.com/bingoiot/ZigbeeMaster-for-PC/blob/master/img/img3.png)
+![image](https://github.com/bingoiot/ZigbeeMaster-for-PC/img/img3.png)
